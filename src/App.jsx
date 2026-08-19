@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api").replace(/\/$/, "");
+
 export default function App() {
   const [activeTab, setActiveTab] = useState("inventory");
   const [inventory, setInventory] = useState([]);
@@ -48,13 +50,13 @@ export default function App() {
   }, []);
 
   const fetchInventory = () => {
-    axios.get("http://127.0.0.1:8000/api/inventory")
+    axios.get(`${API_BASE_URL}/inventory`)
       .then((res) => { setInventory(res.data); setLoading(false); })
       .catch((err) => console.error(err));
   };
 
   const fetchOrders = () => {
-    axios.get("http://127.0.0.1:8000/api/orders")
+    axios.get(`${API_BASE_URL}/orders`)
       .then((res) => {
         setOrders(res.data);
         if (res.data.length > 0 && !selectedOrderId) {
@@ -83,7 +85,7 @@ export default function App() {
   const handleBulkDelete = () => {
     if (selectedItemIds.length === 0) return;
     if (window.confirm(`Are you sure you want to delete ${selectedItemIds.length} item(s)?`)) {
-      axios.post("http://127.0.0.1:8000/api/inventory/bulk-delete", { item_ids: selectedItemIds })
+      axios.post(`${API_BASE_URL}/inventory/bulk-delete`, { item_ids: selectedItemIds })
         .then((res) => {
           alert(`🗑️ ${res.data.message}`);
           setSelectedItemIds([]);
@@ -95,7 +97,7 @@ export default function App() {
 
   const handleBulkRestock = () => {
     if (selectedItemIds.length === 0) return;
-    axios.post("http://127.0.0.1:8000/api/inventory/bulk-restock", { item_ids: selectedItemIds })
+    axios.post(`${API_BASE_URL}/inventory/bulk-restock`, { item_ids: selectedItemIds })
       .then((res) => {
         alert(`✉️ ${res.data.message}`);
       })
@@ -107,7 +109,7 @@ export default function App() {
     if (!selectedProduct) return alert("Please select a product");
     if (!deliveryAddress.trim()) return alert("Please enter a valid delivery address.");
 
-    axios.post("http://127.0.0.1:8000/api/orders/place", {
+    axios.post(`${API_BASE_URL}/orders/place`, {
       product_code: selectedProduct,
       requested_qty: parseInt(orderQty),
       delivery_address: deliveryAddress
@@ -127,14 +129,14 @@ export default function App() {
       alert("🔒 Cannot advance directly! Switch to '🔑 5. OTP Verification' tab to enter Customer OTP.");
       return;
     }
-    axios.post(`http://127.0.0.1:8000/api/orders/${orderId}/advance-status`)
+    axios.post(`${API_BASE_URL}/orders/${orderId}/advance-status`)
       .then(() => fetchOrders())
       .catch((err) => alert(err.response?.data?.detail || "Status update failed."));
   };
 
   const handleSendOtp = () => {
     if (!otpOrderId) return;
-    axios.post(`http://127.0.0.1:8000/api/orders/send-otp?order_id=${otpOrderId}`)
+    axios.post(`${API_BASE_URL}/orders/send-otp?order_id=${otpOrderId}`)
       .then((res) => {
         setGeneratedOtp(res.data.demo_otp);
         setOtpStatusMsg({ success: true, text: `📩 OTP Sent to Customer: ${res.data.demo_otp}` });
@@ -144,7 +146,7 @@ export default function App() {
 
   const handleVerifyOtp = (e) => {
     e.preventDefault();
-    axios.post("http://127.0.0.1:8000/api/orders/verify-otp", {
+    axios.post(`${API_BASE_URL}/orders/verify-otp`, {
       order_id: parseInt(otpOrderId),
       otp: inputOtp
     })
@@ -163,7 +165,7 @@ export default function App() {
     formData.append("order_id", damageOrderId);
     formData.append("damage_image", damageImage);
 
-    axios.post("http://127.0.0.1:8000/api/customer/assess-damage-refund", formData)
+    axios.post(`${API_BASE_URL}/customer/assess-damage-refund`, formData)
       .then((res) => setRefundResult(res.data))
       .catch(() => alert("Damage Assessment Failed."));
   };
@@ -178,7 +180,7 @@ export default function App() {
   };
 
   const handleSingleRestock = (itemId, itemName) => {
-    axios.post("http://127.0.0.1:8000/api/inventory/bulk-restock", { item_ids: [itemId] })
+    axios.post(`${API_BASE_URL}/inventory/bulk-restock`, { item_ids: [itemId] })
       .then((res) => {
         alert(`✅ ${res.data.message}`);
       })
@@ -313,7 +315,7 @@ export default function App() {
 
   const handleAddInventory = (e) => {
     e.preventDefault();
-    axios.post("http://127.0.0.1:8000/api/inventory/add", newItem)
+    axios.post(`${API_BASE_URL}/inventory/add`, newItem)
       .then(() => {
         fetchInventory();
         stopQrScanner();
@@ -357,7 +359,7 @@ export default function App() {
     formData.append("pick_image", pickImage);
     formData.append("pack_image", packImage);
 
-    axios.post("http://127.0.0.1:8000/api/verify-pick-pack", formData)
+    axios.post(`${API_BASE_URL}/verify-pick-pack`, formData)
       .then((res) => {
         setAiResult(res.data);
         fetchOrders();
